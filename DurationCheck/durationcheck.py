@@ -1,5 +1,5 @@
 from pathlib import Path
-#from subprocess import  check_output, CalledProcessError, STDOUT
+import argparse
 import subprocess32 as subprocess
 import os
 import sys
@@ -46,74 +46,42 @@ def folderDuration(folderPath):
     for path in Path(folderPath).iterdir():
         info = path.stat()
         if os.path.isdir(str(path)):
-    		duration += float(folderDuration(path))
+            curr_scope = float(folderDuration(path)) 
+            duration += curr_scope
+            print("{}/ --> {}".format( path, curr_scope) )
         elif str(path).endswith('.mp4') or str(path).endswith('.avi'):
-            print(str(path))
-            duration += float(getDuration(path))
-            
+            curr_scope = float(getDuration(path)) 
+            duration += curr_scope
+            print("{} --> {}".format( path, curr_scope) )
+        
     return duration
 
 
 if __name__=="__main__":
     
-    '''
-    print("Arguments count: {}".format(len(sys.argv)))
-    for i, arg in enumerate(sys.argv):
-        print("Argument {}: {}".format(i, arg))
-    '''
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-f", "--path", required=True, help=" \"path\" to target folder")
+    args = vars(ap.parse_args())
     
-    #Check for path as user input
-    if len(sys.argv) <2 or sys.argv[1]=="":
-        print("** Need a folder path to Proceed **")
-        exit()
+    FOLDER_PATH = str(args["path"])
     
-    if os.path.isdir(str(sys.argv[1])):
+    print("\nScanning Folder :\n{} ... \n".format(FOLDER_PATH))
+    
+    if not os.path.isdir(FOLDER_PATH):
         print("** Please enter a valid Folder Path **")
         exit()
-    elif not os.path.exists(os.path.dirname(sys.argv[1])):
+        
+    elif os.path.exists(os.path.dirname(FOLDER_PATH))==False:
         print("** This folder path does not exist **")
         exit()
-        
-    exit()
-
-    total_hr=0
-    total_min=0
-    total_sec=0
     
-    folderPath = "/media/lupus/P3/Courses/DevOps/[Tutorialsplanet.NET] Udemy - Kubernetes from A to Z/"
-    #folderPath = "/media/lupus/P4/perse/Learn How To Code Google's Go (golang) Programming Language/"
-    #folderPath = "/media/lupus/P4/perse/Practical Ethical Hacking - The Complete Course/"
-    #folderPath = "/media/lupus/P3/temp/Graph Databases 101 for Data Scientists and Analysts/"
-    #folderPath = "/media/lupus/P3/Courses/LANGUAGE/Bash Shell Scripting Tutorial for Beginners/2. Bash Shell Scripting Tutorial/"
-    #folderPath = "/media/lupus/P3/Courses/HACKING N PENTEST/Bug Bounty Hunting - Offensive Approach to Hunt Bugs/"
-    #folderPath ='/media/lupus/P4/perse/GATE/TOC'
-    #folderPath ='/media/lupus/P4/perse/GATE/Computer Networks'
-    #folderPath ='/media/lupus/P4/perse/GATE/OS'
-    #folderPath ='/media/lupus/P4/perse/GATE/c-C++'
-
-    #folderPath = re.escape(folderPath)
-
-    '''
-    for path in Path(folderPath).iterdir():
-        info = path.stat()
-        #print(info.st_size/1025)
-        #fn = '/app/648c89e8-d31f-4164-a1af-034g0191348b.mp4'
-        if os.path.isdir(path):
-    		print(path)
-        duration = float(getDuration(path).strip('\n'))
-        print(duration)
-        total_sec += int(duration%60)
-        total_min += int(duration/60) + int(total_sec/60)
-        total_sec = int(total_sec%60)
-        
-    '''
+    TOTAL_MIN=0
+    TOTAL_SEC=0
     
-    duration = folderDuration(folderPath)
+    duration = folderDuration(FOLDER_PATH)
     print(duration)
-    total_sec += int(duration%60)
-    total_min += int(duration/60) + int(total_sec/60)
-    total_sec = int(total_sec%60)
-    
+    TOTAL_SEC += int(duration%60)
+    TOTAL_MIN += int(duration/60) + int(TOTAL_SEC/60)
+    TOTAL_SEC = int(TOTAL_SEC%60)
 
-
-    print("Total Duration: {}hr {}min {}secs ".format(total_min/60, total_min%60, total_sec))
+    print("Total Duration: {}hr {}min {}secs ".format(TOTAL_MIN/60, TOTAL_MIN%60, TOTAL_SEC))
