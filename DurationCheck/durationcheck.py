@@ -2,6 +2,7 @@ from pathlib import Path
 #from subprocess import  check_output, CalledProcessError, STDOUT
 import subprocess32 as subprocess
 import os
+import sys
 
 def getDuration(filename):
 
@@ -54,6 +55,26 @@ def folderDuration(folderPath):
 
 
 if __name__=="__main__":
+    
+    '''
+    print("Arguments count: {}".format(len(sys.argv)))
+    for i, arg in enumerate(sys.argv):
+        print("Argument {}: {}".format(i, arg))
+    '''
+    
+    #Check for path as user input
+    if len(sys.argv) <2 or sys.argv[1]=="":
+        print("** Need a folder path to Proceed **")
+        exit()
+    
+    if os.path.isdir(str(sys.argv[1])):
+        print("** Please enter a valid Folder Path **")
+        exit()
+    elif not os.path.exists(os.path.dirname(sys.argv[1])):
+        print("** This folder path does not exist **")
+        exit()
+        
+    exit()
 
     total_hr=0
     total_min=0
