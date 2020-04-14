@@ -66,26 +66,27 @@ class Slogger:
             for future in as_completed(futures):
                 cumulative += future.result()
             #print("Cumulative Size : {}\n".format(cumulative))
-            total_size = self.print_relative_size(cumulative)
-
-            option =''
-            while option not in ('Y', 'N'):
-                option = input(total_size+" of Data required. Do you want to continue ? [Y/N]: ")
-
-                if option not in ('Y', 'N'):
-                    print("Incorrect option! Choose 'Y' or 'N'")
-
-            #Don't proceed to donload if user opts out
-            if option == 'N':
-                exit()
-
-            print("Proceed to Download ....")
+            return cumulative
 
 
     def go(self):
 
         #Check for the entire size of downloads and check with user
-        self.cal_total_size()
+        total_size_bytes = self.cal_total_size()
+        total_size = self.print_relative_size(total_size_bytes)
+        
+        option =''
+        while option not in ('Y', 'N'):
+            option = input(total_size+" of Data required. Do you want to continue ? [Y/N]: ")
+
+            if option not in ('Y', 'N'):
+                print("Incorrect option! Choose 'Y' or 'N'")
+
+        #Don't proceed to donload if user opts out
+        if option == 'N':
+            exit()
+
+        print("Proceed to Download ....")
 
 if __name__ == '__main__':
 
