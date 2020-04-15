@@ -1,6 +1,7 @@
+import os
 import argparse
-import urllib.request
 import threading
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
@@ -33,8 +34,8 @@ class Slogger:
         site = urllib.request.urlopen(url)
         meta = site.info()
 
-        print("Thread : {}".format(threading.current_thread().name))
-        print("{} => {:.2f}MB ({} bytes) \n".format(url, int(meta['Content-Length'])/(1024*1024), int(meta['Content-Length'])))
+        #print("Thread : {}".format(threading.current_thread().name))
+        print("{} : {} => {:.2f}MB ({} bytes) \n".format(threading.current_thread().name, url, int(meta['Content-Length'])/(1024*1024), int(meta['Content-Length'])))
         return int(meta['Content-Length'])
 
     @staticmethod
@@ -69,12 +70,46 @@ class Slogger:
             return cumulative
 
 
+    def fetch_urls(self, url):
+        ''' Save the urls to the disk'''
+
+        req = urllib.request.urlopen(url)
+        filename = os.path.basename(url)
+
+        print("Thread : {}".format(threading.current_thread().name))
+        print("STARTED : {filename}\n".format(filename=filename))
+
+        with open(os.path.join(self.output_dir, filename), 'wb') as file_handler:
+
+            while True:
+                chunk = req.read(1024)
+                if not chunk:
+                    break
+                #print(sys.getsizeof(chunk))
+                file_handler.write(chunk)
+        return 'DONE : {filename}'.format(filename=filename)
+
+
+    def download_urls(self):
+
+        # Create temp and output paths based on where the executable is located
+        self.base_dir = os.path.dirname(os.path.realpath(__file__))
+        self.output_dir = os.path.join(self.base_dir, "output")
+
+        if os.path.exists(self.output_dir)==False:
+            os.mkdir(self.output_dir)
+            
+        with ThreadPoolExecutor(max_workers=7) as executor:
+            futures = [executor.submit(self.fetch_urls, url) for url in self.new_urls]
+            for future in as_completed(futures):
+                print(future.result())
+
     def go(self):
 
         #Check for the entire size of downloads and check with user
         total_size_bytes = self.cal_total_size()
         total_size = self.print_relative_size(total_size_bytes)
-        
+
         option =''
         while option not in ('Y', 'N'):
             option = input(total_size+" of Data required. Do you want to continue ? [Y/N]: ")
@@ -84,9 +119,13 @@ class Slogger:
 
         #Don't proceed to donload if user opts out
         if option == 'N':
+            print('Got it! Exiting ...')
             exit()
 
         print("Proceed to Download ....")
+        #Proceed ahead to download the urls
+
+        self.download_urls()
 
 if __name__ == '__main__':
 
