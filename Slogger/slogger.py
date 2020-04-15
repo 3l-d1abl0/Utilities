@@ -1,4 +1,6 @@
 import os
+import sys
+import time
 import argparse
 import threading
 import urllib.request
@@ -22,20 +24,22 @@ class Slogger:
         #read the file and setup the urls
         self.urls = [url.strip() for url in open(url_file).readlines()]
         self.new_urls = self.url_encode(self.urls)
+        self.url_size = {}
         '''
         for url in self.new_urls:
             print (url)
         #print(self.new_urls)
         '''
 
-    @staticmethod
-    def fetch_size(url):
+    def fetch_size(self, idx, url):
 
         site = urllib.request.urlopen(url)
         meta = site.info()
 
+        self.url_size[idx] = int(meta['Content-Length'])
+
         #print("Thread : {}".format(threading.current_thread().name))
-        print("{} : {} => {:.2f}MB ({} bytes) \n".format(threading.current_thread().name, url, int(meta['Content-Length'])/(1024*1024), int(meta['Content-Length'])))
+        print("{} : {} --> {:.2f}MB ({} bytes) \n".format(threading.current_thread().name, url, int(meta['Content-Length'])/(1024*1024), int(meta['Content-Length'])))
         return int(meta['Content-Length'])
 
     @staticmethod
@@ -61,7 +65,11 @@ class Slogger:
     def cal_total_size(self):
 
         with ThreadPoolExecutor(max_workers=7) as executor:
-            futures = [executor.submit(self.fetch_size, url) for url in self.new_urls]
+            #futures = [executor.submit(self.fetch_size, url) for url in self.new_urls]
+
+            futures = []
+            for idx, url in enumerate(self.new_urls):
+                futures.append(executor.submit(self.fetch_size, idx, url))
 
             cumulative =0
             for future in as_completed(futures):
@@ -70,24 +78,33 @@ class Slogger:
             return cumulative
 
 
-    def fetch_urls(self, url):
+    def fetch_urls(self, idx, url):
         ''' Save the urls to the disk'''
 
         req = urllib.request.urlopen(url)
-        filename = os.path.basename(url)
+        filename = urllib.parse.unquote(os.path.basename(url))
 
-        print("Thread : {}".format(threading.current_thread().name))
-        print("STARTED : {filename}\n".format(filename=filename))
+        #print("Thread : {}".format(threading.current_thread().name))
+        print("STARTED : {thread} => {filename}\n".format(thread=threading.current_thread().name ,filename=filename))
 
         with open(os.path.join(self.output_dir, filename), 'wb') as file_handler:
 
+            prev_time = time.time()
+            curr_size =0
             while True:
                 chunk = req.read(1024)
                 if not chunk:
                     break
                 #print(sys.getsizeof(chunk))
                 file_handler.write(chunk)
-        return 'DONE : {filename}'.format(filename=filename)
+                curr_size += sys.getsizeof(chunk)
+
+                curr_time = time.time()
+                if curr_time - prev_time >= 3:
+                    print("{} : {} -->> {:.2f} %".format(threading.current_thread().name, filename, (curr_size/self.url_size[idx])*100 ))
+                    prev_time = curr_time
+
+        return "DONE : {thread} => {filename}\n".format(thread=threading.current_thread().name ,filename=filename)
 
 
     def download_urls(self):
@@ -98,9 +115,10 @@ class Slogger:
 
         if os.path.exists(self.output_dir)==False:
             os.mkdir(self.output_dir)
-            
+
         with ThreadPoolExecutor(max_workers=7) as executor:
-            futures = [executor.submit(self.fetch_urls, url) for url in self.new_urls]
+
+            futures = [executor.submit(self.fetch_urls, idx, url) for idx, url in enumerate(self.new_urls)]
             for future in as_completed(futures):
                 print(future.result())
 
@@ -109,6 +127,8 @@ class Slogger:
         #Check for the entire size of downloads and check with user
         total_size_bytes = self.cal_total_size()
         total_size = self.print_relative_size(total_size_bytes)
+
+        print(self.url_size)
 
         option =''
         while option not in ('Y', 'N'):
